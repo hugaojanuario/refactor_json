@@ -59,7 +59,7 @@ func main() {
 
 		fmt.Printf("Processando: %s\n", entry.Name())
 
-		if err := pipeline.ProcessFile(inputPath, outputPath, flexions); err != nil {
+		if err := pipeline.ProcessFile(inputPath, outputPath, phrase, flexions); err != nil {
 			fmt.Fprintf(os.Stderr, "  [ERRO] %s: %v\n", entry.Name(), err)
 			failed++
 			continue

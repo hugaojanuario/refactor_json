@@ -16,7 +16,7 @@ import (
 //  4. Substitui os placeholders *MS*/*FS*/*MP*/*FP* no XML interno
 //  5. Recodifica → base64
 //  6. Salva o JSON de saída preservando o formato original
-func ProcessFile(inputPath, outputPath string, flexions models.Flexions) error {
+func ProcessFile(inputPath, outputPath, phrase string, flexions models.Flexions) error {
 	// Passo 1: lê o JSON (array ou objeto)
 	fc, err := ReadFile(inputPath)
 	if err != nil {
@@ -30,6 +30,7 @@ func ProcessFile(inputPath, outputPath string, flexions models.Flexions) error {
 			return fmt.Errorf("documento[%d] %q: %w", i, doc.Name, err)
 		}
 		doc.Content = newContent
+		doc.Name = phrase // usa a frase digitada como nome do documento
 	}
 
 	// Passo 6: salva o JSON de saída
