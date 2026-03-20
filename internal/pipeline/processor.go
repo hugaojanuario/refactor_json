@@ -3,43 +3,64 @@ package pipeline
 import (
 	"fmt"
 
+	"github.com/hugaojanuario/refactor_doc/internal/docx"
 	"github.com/hugaojanuario/refactor_doc/internal/models"
 )
 
 // ProcessFile é a função central do sistema. Orquestra o pipeline completo
-// para um único arquivo JSON:
+// para um único arquivo JSON (que pode conter um ou mais documentos):
 //
-//  1. Lê o JSON do disco
-//  2. Decodifica base64 → bytes do ZIP externo
-//  3. Dentro do ZIP, encontra o DOCX/ODT e substitui os placeholders no XML
-//  4. Reempacota: novo DOCX/ODT → novo ZIP → base64
-//  5. Salva o JSON de saída com o novo content
+//  1. Lê o JSON (suporta objeto único ou array)
+//  2. Para cada documento: decodifica base64 → bytes do ODT/DOCX
+//  3. Detecta o tipo (ODT ou DOCX)
+//  4. Substitui os placeholders *MS*/*FS*/*MP*/*FP* no XML interno
+//  5. Recodifica → base64
+//  6. Salva o JSON de saída preservando o formato original
 func ProcessFile(inputPath, outputPath string, flexions models.Flexions) error {
-	// Passo 1: lê o envelope JSON
-	doc, err := ReadDocument(inputPath)
+	// Passo 1: lê o JSON (array ou objeto)
+	fc, err := ReadFile(inputPath)
 	if err != nil {
 		return fmt.Errorf("passo 1 (leitura): %w", err)
 	}
 
-	// Passo 2: decodifica base64 → bytes brutos do ZIP
-	zipData, err := DecodeBase64(doc.Content)
-	if err != nil {
-		return fmt.Errorf("passo 2 (base64): %w", err)
+	// Passo 2-5: processa cada documento dentro do arquivo
+	for i, doc := range fc.Documents {
+		newContent, err := processDocument(doc.Content, flexions)
+		if err != nil {
+			return fmt.Errorf("documento[%d] %q: %w", i, doc.Name, err)
+		}
+		doc.Content = newContent
 	}
 
-	// Passo 3: processa o ZIP (encontra DOCX/ODT, substitui placeholders)
-	newZipData, err := ProcessZIP(zipData, flexions)
-	if err != nil {
-		return fmt.Errorf("passo 3 (processamento): %w", err)
-	}
-
-	// Passo 4: recodifica ZIP → base64
-	newContent := EncodeBase64(newZipData)
-
-	// Passo 5: salva JSON de saída com content atualizado
-	if err := WriteDocument(outputPath, doc, newContent); err != nil {
-		return fmt.Errorf("passo 5 (escrita): %w", err)
+	// Passo 6: salva o JSON de saída
+	if err := WriteFile(outputPath, fc); err != nil {
+		return fmt.Errorf("passo 6 (escrita): %w", err)
 	}
 
 	return nil
+}
+
+// processDocument processa o campo content de um único documento:
+// decodifica base64, detecta tipo, substitui placeholders, recodifica.
+func processDocument(content string, flexions models.Flexions) (string, error) {
+	// Decode base64 → bytes brutos do ODT/DOCX
+	docData, err := DecodeBase64(content)
+	if err != nil {
+		return "", fmt.Errorf("decode base64: %w", err)
+	}
+
+	// Detecta se é ODT ou DOCX
+	ext, err := DetectDocType(docData)
+	if err != nil {
+		return "", fmt.Errorf("detectando tipo: %w", err)
+	}
+
+	// Processa o XML interno (substitui placeholders)
+	newDocData, err := docx.ProcessDocument(docData, ext, flexions)
+	if err != nil {
+		return "", fmt.Errorf("processando %s: %w", ext, err)
+	}
+
+	// Recodifica → base64
+	return EncodeBase64(newDocData), nil
 }

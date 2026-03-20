@@ -88,10 +88,11 @@ func ProcessDocument(docData []byte, ext string, flexions models.Flexions) ([]by
 func replacePlaceholders(xmlData []byte, f models.Flexions) []byte {
 	s := string(xmlData)
 
-	s = strings.ReplaceAll(s, "*MS", escapeXML(f.MS))
-	s = strings.ReplaceAll(s, "*FS", escapeXML(f.FS))
-	s = strings.ReplaceAll(s, "*MP", escapeXML(f.MP))
-	s = strings.ReplaceAll(s, "*FP", escapeXML(f.FP))
+	// Placeholders no formato *XX* (com asterisco no início e no fim)
+	s = strings.ReplaceAll(s, "*MS*", escapeXML(f.MS))
+	s = strings.ReplaceAll(s, "*FS*", escapeXML(f.FS))
+	s = strings.ReplaceAll(s, "*MP*", escapeXML(f.MP))
+	s = strings.ReplaceAll(s, "*FP*", escapeXML(f.FP))
 
 	return []byte(s)
 }

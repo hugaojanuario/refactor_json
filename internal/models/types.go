@@ -3,12 +3,15 @@
 package models
 
 // Document representa o envelope JSON que envolve cada arquivo de entrada/saída.
-// O campo Content é um ZIP codificado em base64 que contém um DOCX ou ODT.
+// O campo Content é o DOCX ou ODT codificado diretamente em base64.
+// Campos extras (TipoModelo, ProdutoOrionTO) são preservados na saída.
 type Document struct {
-	Name         string `json:"name"`
-	Descricao    string `json:"descricao"`
-	ModeloPadrao bool   `json:"modeloPadrao"`
-	Content      string `json:"content"` // base64(ZIP(DOCX|ODT))
+	Name           string      `json:"name"`
+	Descricao      string      `json:"descricao"`
+	ModeloPadrao   bool        `json:"modeloPadrao"`
+	Content        string      `json:"content"` // base64(ODT|DOCX)
+	TipoModelo     interface{} `json:"tipoModelo,omitempty"`
+	ProdutoOrionTO interface{} `json:"produtoOrionTO,omitempty"`
 }
 
 // Flexions contém as quatro formas flexionadas de uma frase em português.
