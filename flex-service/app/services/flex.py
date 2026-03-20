@@ -146,10 +146,15 @@ def _flex_noun(text: str, gender: str, number: str) -> str:
 
 
 def _flex_word(text: str, gender: str, number: str) -> str:
-    """Aplica regras morfológicas regulares: primeiro gênero, depois número."""
+    """Aplica regras morfológicas regulares: primeiro gênero, depois número.
+
+    Preserva o padrão de capitalização do texto original no resultado final.
+    Ex: "OUTORGADO" → "OUTORGADAS" (não "OUTORGADas")
+    """
     word = _apply_gender(text, gender)
     word = _apply_number(word, number)
-    return word
+    # Passa o texto ORIGINAL (antes de qualquer transformação) para preservar case
+    return _preserve_case(text, word)
 
 
 def _apply_gender(word: str, target_gender: str) -> str:
@@ -223,15 +228,11 @@ def _flex_verb(text: str, number: str) -> str:
     if plural:
         return _preserve_case(text, plural)
 
-    # 2. Regras para verbos regulares
-    # 3ª pessoa singular → plural:
-    #   -a → -am   (fala → falam, declara → declaram)
-    #   -e → -em   (responde → respondem, assume → assumem)
-    #   -i → -em   (inclui → incluem — coberto pelo dicionário, mas fallback)
+    # 2. Regras para verbos regulares com preservação de case
     if lower.endswith("a"):
-        return text[:-1] + "am"
+        return _preserve_case(text, lower[:-1] + "am")
     if lower.endswith("e"):
-        return text + "m"
+        return _preserve_case(text, lower + "m")
 
     # Conservador: desconhecido, retorna inalterado
     return text
